@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #080B12;
+    --foreground: #f1f5f9;
+    --surface: #0E1420;
+    --accent: #3B82F6;
+    --accent-cyan: #06B6D4;
+    --gold: #F59E0B;
+    --border: rgba(59, 130, 246, 0.2);
+    --radius: 0.5rem;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  * {
+    @apply border-quantum-border/30;
+  }
+
+  body {
+    @apply bg-quantum-bg text-slate-100 font-sans antialiased;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  /* Text selection */
+  ::selection {
+    background: rgba(59, 130, 246, 0.3);
+    color: white;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Gradient text utility */
+  .text-gradient {
+    @apply bg-gradient-to-r from-quantum-accent via-quantum-cyan to-quantum-accent bg-clip-text text-transparent;
+  }
+
+  /* Glass utility */
+  .glass {
+    @apply border border-white/5 bg-quantum-surface/80 backdrop-blur-md;
+  }
+}
