@@ -9,18 +9,21 @@ import {
   MessageCircle,
   Trophy,
   Users,
+  Settings,
   LogOut,
   Home,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LS_KEY = "communaute_last_seen";
 
 const NAV = [
-  { href: "/candidat/profil",     label: "Mon profil",   icon: User },
-  { href: "/candidat/communaute", label: "Communauté",   icon: MessageCircle },
-  { href: "/candidat/grades",     label: "Grades & XP",  icon: Trophy },
-  { href: "/candidat/parrainage", label: "Parrainage",   icon: Users },
+  { href: "/candidat/profil",      label: "Mon profil",   icon: User },
+  { href: "/candidat/communaute",  label: "Communauté",   icon: MessageCircle },
+  { href: "/candidat/grades",      label: "Grades & XP",  icon: Trophy },
+  { href: "/candidat/parrainage",  label: "Parrainage",   icon: Users },
+  { href: "/candidat/parametres",  label: "Paramètres",   icon: Settings },
 ];
 
 const GRADE_COLORS: Record<string, string> = {
@@ -42,9 +45,13 @@ const GRADE_LABELS: Record<string, string> = {
 export function CandidatSidebar({
   fullName,
   grade,
+  isOpen = true,
+  onClose,
 }: {
   fullName: string | null;
   grade: string;
+  isOpen?: boolean;
+  onClose?: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -91,8 +98,16 @@ export function CandidatSidebar({
     : "?";
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-60 flex-col border-r border-white/[0.06] bg-quantum-surface">
-      {/* Logo */}
+    <aside
+      className={cn(
+        "fixed left-0 top-0 z-40 flex h-screen w-60 flex-col border-r border-white/[0.06] bg-quantum-surface transition-transform duration-300 ease-in-out",
+        "lg:translate-x-0",
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      )}
+    >
+      {/* Accent line */}
+      <div className="h-px w-full bg-gradient-to-r from-transparent via-quantum-cyan/60 to-transparent" />
+      {/* Logo + close button (mobile) */}
       <div className="flex h-16 items-center border-b border-white/[0.06] px-6">
         <Link
           href="/candidat/profil"
@@ -100,6 +115,15 @@ export function CandidatSidebar({
         >
           QUANTUM
         </Link>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="ml-auto flex items-center justify-center rounded-lg p-1.5 text-slate-500 hover:bg-white/[0.06] hover:text-slate-300 lg:hidden"
+            aria-label="Fermer le menu"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {/* User info */}

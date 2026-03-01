@@ -32,8 +32,8 @@ export default async function AdminLayout({
   if (profile?.role !== "admin") redirect("/");
 
   return (
-    <div className="min-h-screen bg-quantum-bg">
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-quantum-surface/80 backdrop-blur">
+    <div className="min-h-screen space-admin">
+      <header className="sticky top-0 z-40 bg-[#080B12]/80 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <Link href="/admin" className="font-syne font-bold text-white">
             QUANTUM Admin
@@ -68,8 +68,9 @@ export default async function AdminLayout({
             <AdminHeaderActions />
           </nav>
         </div>
+        <div className="h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+      <main className="dot-grid mx-auto max-w-6xl px-4 py-6">{children}</main>
     </div>
   );
 }

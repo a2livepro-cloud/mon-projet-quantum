@@ -15,7 +15,9 @@ import {
 } from "@/components/ui/dialog";
 import { SECTEUR_LABELS } from "@/types/database";
 import type { SecteurCandidat } from "@/types/database";
-import { CheckCircle, XCircle, MessageSquare } from "lucide-react";
+import { CheckCircle, XCircle, MessageSquare, Search, ChevronLeft, ChevronRight } from "lucide-react";
+
+const PAGE_SIZE = 20;
 
 const ALL_SECTEURS: SecteurCandidat[] = [
   "aeronautique",
@@ -69,6 +71,23 @@ export function ClientsTable({
   const [secteursValides, setSecteursValides] = useState<SecteurCandidat[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Search + pagination
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+
+  const filtered = profiles.filter((p) => {
+    const q = search.toLowerCase();
+    const c = clientsMap.get(p.id);
+    return (
+      (p.full_name ?? "").toLowerCase().includes(q) ||
+      (p.email ?? "").toLowerCase().includes(q) ||
+      (c?.nom_entreprise ?? "").toLowerCase().includes(q)
+    );
+  });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages - 1);
+  const visible = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+
   function openDialog(profileId: string, newStatus: "approved" | "rejected", name: string) {
     setNote("");
     const c = clientsMap.get(profileId);
@@ -121,6 +140,23 @@ export function ClientsTable({
 
   return (
     <>
+      {/* Search bar */}
+      <div className="mb-4 flex items-center gap-2">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <input
+            type="text"
+            placeholder="Rechercher par nom, email ou entreprise…"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-2 pl-9 pr-3 text-sm text-slate-200 placeholder:text-slate-600 focus:border-quantum-accent/50 focus:outline-none focus:ring-1 focus:ring-quantum-accent/50"
+          />
+        </div>
+        <span className="text-xs text-slate-500">
+          {filtered.length} résultat{filtered.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -135,7 +171,14 @@ export function ClientsTable({
             </tr>
           </thead>
           <tbody>
-            {profiles.map((p) => {
+            {visible.length === 0 && (
+              <tr>
+                <td colSpan={7} className="py-8 text-center text-slate-500">
+                  Aucun résultat pour &laquo;&nbsp;{search}&nbsp;&raquo;
+                </td>
+              </tr>
+            )}
+            {visible.map((p) => {
               const c = clientsMap.get(p.id);
               const cfg = STATUS_CONFIG[p.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending;
               const secteurs = c?.secteurs ?? [];
@@ -211,6 +254,35 @@ export function ClientsTable({
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between text-sm">
+          <span className="text-slate-500">
+            Page {currentPage + 1} / {totalPages}
+            {" · "}
+            {filtered.length} client{filtered.length !== 1 ? "s" : ""}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={currentPage === 0}
+              className="flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-slate-400 transition-colors hover:border-white/20 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Préc.
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={currentPage === totalPages - 1}
+              className="flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-slate-400 transition-colors hover:border-white/20 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Suiv.
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation dialog */}
       <Dialog open={!!pending} onOpenChange={(open) => { if (!open) setPending(null); }}>

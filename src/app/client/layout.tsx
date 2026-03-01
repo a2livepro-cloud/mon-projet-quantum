@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ClientSidebar } from "./client-sidebar";
+import { ClientLayoutClient } from "./client-layout-client";
 
 export default async function ClientLayout({
   children,
@@ -34,12 +34,11 @@ export default async function ClientLayout({
     .single();
 
   return (
-    <div className="flex min-h-screen bg-quantum-bg">
-      <ClientSidebar
-        fullName={profile.full_name}
-        grade={clientData?.grade ?? "recrue"}
-      />
-      <main className="ml-60 flex-1 p-6 max-w-[calc(100vw-240px)]">{children}</main>
-    </div>
+    <ClientLayoutClient
+      fullName={profile.full_name}
+      grade={clientData?.grade ?? "recrue"}
+    >
+      {children}
+    </ClientLayoutClient>
   );
 }

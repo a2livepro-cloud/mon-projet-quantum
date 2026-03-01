@@ -13,6 +13,7 @@ import {
   Settings,
   LogOut,
   Home,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,9 +39,13 @@ const GRADE_COLORS: Record<string, string> = {
 export function ClientSidebar({
   fullName,
   grade,
+  isOpen = true,
+  onClose,
 }: {
   fullName: string | null;
   grade: string;
+  isOpen?: boolean;
+  onClose?: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -87,8 +92,16 @@ export function ClientSidebar({
     : "?";
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-60 flex-col border-r border-white/[0.06] bg-quantum-surface">
-      {/* Logo */}
+    <aside
+      className={cn(
+        "fixed left-0 top-0 z-40 flex h-screen w-60 flex-col border-r border-white/[0.06] bg-quantum-surface transition-transform duration-300 ease-in-out",
+        "lg:translate-x-0",
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      )}
+    >
+      {/* Accent line */}
+      <div className="h-px w-full bg-gradient-to-r from-transparent via-quantum-accent/60 to-transparent" />
+      {/* Logo + close button (mobile) */}
       <div className="flex h-16 items-center border-b border-white/[0.06] px-6">
         <Link
           href="/client/dashboard"
@@ -96,6 +109,15 @@ export function ClientSidebar({
         >
           QUANTUM
         </Link>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="ml-auto flex items-center justify-center rounded-lg p-1.5 text-slate-500 hover:bg-white/[0.06] hover:text-slate-300 lg:hidden"
+            aria-label="Fermer le menu"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {/* User info */}
