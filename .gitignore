@@ -1,12 +1,5 @@
 node_modules
+.next
 .claude
-
-# Variables d'environnement — ne jamais commiter
-.env
 .env.local
-.env.*.local
-.env.production
-
-# Next.js
-.next/
-out/
+.env*.local

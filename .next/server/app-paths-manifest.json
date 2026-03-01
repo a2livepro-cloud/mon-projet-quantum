@@ -1,8 +1,4 @@
 {
-  "/choisir/page": "app/choisir/page.js",
-  "/connexion/page": "app/connexion/page.js",
-  "/inscription/client/page": "app/inscription/client/page.js",
-  "/api/admin/validate-profile/route": "app/api/admin/validate-profile/route.js",
-  "/admin/clients/page": "app/admin/clients/page.js",
-  "/admin/page": "app/admin/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/page": "app/page.js"
 }
