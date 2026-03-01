@@ -25,9 +25,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { AuthNav } from "@/components/auth-nav";
 import { validatePassword } from "@/lib/utils";
 import { PasswordRules } from "@/components/password-rules";
-import { CheckCircle, ArrowRight } from "lucide-react";
+import { CheckCircle, ArrowRight, Paperclip, X } from "lucide-react";
 import type { SecteurCandidat, AnneesExperience, Disponibilite } from "@/types/database";
 import { SECTEUR_LABELS, DISPO_LABELS } from "@/types/database";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 const SECTEURS: SecteurCandidat[] = [
   "aeronautique",
@@ -49,7 +50,9 @@ export default function InscriptionCandidatPage() {
   const [anneesExperience, setAnneesExperience] = useState<AnneesExperience | "">("");
   const [disponibilite, setDisponibilite] = useState<Disponibilite | "">("");
   const [referralCode, setReferralCode] = useState("");
+  const [cvFile, setCvFile] = useState<File | null>(null);
   const [gdprConsent, setGdprConsent] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [pwdFocused, setPwdFocused] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -66,12 +69,29 @@ export default function InscriptionCandidatPage() {
       });
       return;
     }
+    if (!captchaToken) {
+      toast({ title: "CAPTCHA requis", description: "Veuillez compléter la vérification anti-bot.", variant: "destructive" });
+      return;
+    }
     const pwdError = validatePassword(password);
     if (pwdError) {
       toast({ title: "Mot de passe invalide", description: pwdError, variant: "destructive" });
       return;
     }
     setLoading(true);
+
+    // Vérification CAPTCHA côté serveur
+    const captchaRes = await fetch("/api/verify-captcha", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: captchaToken }),
+    });
+    if (!captchaRes.ok) {
+      toast({ title: "CAPTCHA invalide", description: "La vérification anti-bot a échoué. Réessayez.", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
     const fullName = `${prenom} ${nom}`.trim();
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
@@ -124,6 +144,22 @@ export default function InscriptionCandidatPage() {
       setLoading(false);
       return;
     }
+
+    // Upload CV si fourni (avant signOut — la session est encore active)
+    if (cvFile) {
+      const ext = cvFile.name.split(".").pop() ?? "pdf";
+      const cvPath = `${authData.user.id}/cv.${ext}`;
+      const { error: storageError } = await supabase.storage
+        .from("cvs")
+        .upload(cvPath, cvFile, { upsert: true });
+      if (storageError) {
+        // Non bloquant : on prévient sans stopper l'inscription
+        toast({ title: "CV non uploadé", description: "Votre inscription est enregistrée mais le CV n'a pas pu être joint. Contactez-nous.", variant: "destructive" });
+      } else {
+        await supabase.from("candidats").update({ cv_path: cvPath }).eq("id", authData.user.id);
+      }
+    }
+
     setLoading(false);
     await supabase.auth.signOut();
     setSuccess(true);
@@ -276,6 +312,55 @@ export default function InscriptionCandidatPage() {
                 onChange={(e) => setReferralCode(e.target.value)}
               />
             </div>
+
+            {/* CV Upload */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="cv">CV</Label>
+                <span className="rounded-full bg-quantum-accent/10 px-2 py-0.5 text-[10px] font-semibold text-quantum-accent">
+                  Recommandé
+                </span>
+              </div>
+              {cvFile ? (
+                <div className="flex items-center gap-2 rounded-lg border border-quantum-accent/30 bg-quantum-accent/5 px-3 py-2">
+                  <Paperclip className="h-4 w-4 shrink-0 text-quantum-accent" />
+                  <span className="flex-1 truncate text-sm text-slate-200">{cvFile.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setCvFile(null)}
+                    className="shrink-0 text-slate-500 hover:text-red-400 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <label
+                  htmlFor="cv"
+                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-white/10 px-4 py-3 text-sm text-slate-400 transition-colors hover:border-quantum-accent/40 hover:text-slate-300"
+                >
+                  <Paperclip className="h-4 w-4 shrink-0" />
+                  Joindre votre CV (PDF, DOC — max 5 Mo)
+                  <input
+                    id="cv"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      if (file && file.size > 5 * 1024 * 1024) {
+                        toast({ title: "Fichier trop volumineux", description: "Le CV ne doit pas dépasser 5 Mo.", variant: "destructive" });
+                        return;
+                      }
+                      setCvFile(file);
+                    }}
+                  />
+                </label>
+              )}
+              <p className="text-xs text-slate-500">
+                Un CV accélère le traitement de votre demande par l&apos;équipe QUANTUM.
+              </p>
+            </div>
+
             <div className="flex items-start gap-2">
               <Checkbox
                 id="gdpr"
@@ -287,7 +372,15 @@ export default function InscriptionCandidatPage() {
                 contacté pour des missions (consentement RGPD obligatoire).
               </Label>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <div className="flex justify-center">
+              <Turnstile
+                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                onSuccess={setCaptchaToken}
+                onExpire={() => setCaptchaToken(null)}
+                options={{ theme: "dark", language: "fr" }}
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={loading || !captchaToken}>
               {loading ? "Inscription…" : "S'inscrire"}
             </Button>
           </form>

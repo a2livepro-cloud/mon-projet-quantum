@@ -14,7 +14,7 @@ export default async function AdminClientsPage({
 
   const query = supabase
     .from("profiles")
-    .select("id, full_name, email, status, created_at")
+    .select("id, full_name, email, status, admin_note, created_at")
     .eq("role", "client")
     .order("created_at", { ascending: false });
 

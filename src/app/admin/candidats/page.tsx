@@ -14,7 +14,7 @@ export default async function AdminCandidatsPage({
 
   const query = supabase
     .from("profiles")
-    .select("id, full_name, email, status, created_at")
+    .select("id, full_name, email, status, admin_note, created_at")
     .eq("role", "candidat")
     .order("created_at", { ascending: false });
 
@@ -26,7 +26,7 @@ export default async function AdminCandidatsPage({
     ids.length > 0
       ? await supabase
           .from("candidats")
-          .select("id, secteur, annees_experience, disponibilite")
+          .select("id, secteur, annees_experience, disponibilite, cv_path")
           .in("id", ids)
       : { data: [] };
 

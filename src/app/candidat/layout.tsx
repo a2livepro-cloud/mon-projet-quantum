@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { User, MessageCircle, Award } from "lucide-react";
+import { CandidatSidebar } from "./candidat-sidebar";
 
 export default async function CandidatLayout({
   children,
@@ -17,7 +15,7 @@ export default async function CandidatLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, status")
+    .select("role, status, full_name")
     .eq("id", user.id)
     .single();
 
@@ -28,33 +26,19 @@ export default async function CandidatLayout({
     );
   }
 
+  const { data: candidatData } = await supabase
+    .from("candidats")
+    .select("grade")
+    .eq("id", user.id)
+    .single();
+
   return (
-    <div className="min-h-screen bg-quantum-bg">
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-quantum-surface/80 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link href="/candidat/profil" className="font-syne font-bold text-white">
-            QUANTUM
-          </Link>
-          <nav className="flex items-center gap-2">
-            <Link href="/candidat/profil">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <User className="h-4 w-4" /> Profil
-              </Button>
-            </Link>
-            <Link href="/candidat/communaute">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <MessageCircle className="h-4 w-4" /> Communauté
-              </Button>
-            </Link>
-            <Link href="/candidat/grades">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Award className="h-4 w-4" /> Grades
-              </Button>
-            </Link>
-          </nav>
-        </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+    <div className="flex min-h-screen bg-quantum-bg">
+      <CandidatSidebar
+        fullName={profile.full_name}
+        grade={candidatData?.grade ?? "recrue"}
+      />
+      <main className="ml-60 flex-1 p-6 max-w-[calc(100vw-240px)]">{children}</main>
     </div>
   );
 }

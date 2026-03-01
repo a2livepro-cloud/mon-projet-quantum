@@ -26,6 +26,7 @@ import { AuthNav } from "@/components/auth-nav";
 import { validatePassword } from "@/lib/utils";
 import { PasswordRules } from "@/components/password-rules";
 import { CheckCircle, ArrowRight } from "lucide-react";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 const SECTEURS = [
   "Prestation / Cabinet de recrutement",
@@ -46,6 +47,7 @@ export default function InscriptionClientPage() {
   const [descriptionBesoin, setDescriptionBesoin] = useState("");
   const [referralCode, setReferralCode] = useState("");
   const [cguAccepted, setCguAccepted] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [pwdFocused, setPwdFocused] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -63,7 +65,23 @@ export default function InscriptionClientPage() {
       toast({ title: "CGU requises", description: "Veuillez accepter les conditions générales d'utilisation.", variant: "destructive" });
       return;
     }
+    if (!captchaToken) {
+      toast({ title: "CAPTCHA requis", description: "Veuillez compléter la vérification anti-bot.", variant: "destructive" });
+      return;
+    }
     setLoading(true);
+
+    // Vérification CAPTCHA côté serveur
+    const captchaRes = await fetch("/api/verify-captcha", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: captchaToken }),
+    });
+    if (!captchaRes.ok) {
+      toast({ title: "CAPTCHA invalide", description: "La vérification anti-bot a échoué. Réessayez.", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -229,7 +247,15 @@ export default function InscriptionClientPage() {
                 </Link>
               </label>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <div className="flex justify-center">
+              <Turnstile
+                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                onSuccess={setCaptchaToken}
+                onExpire={() => setCaptchaToken(null)}
+                options={{ theme: "dark", language: "fr" }}
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={loading || !captchaToken}>
               {loading ? "Inscription…" : "S'inscrire"}
             </Button>
           </form>
