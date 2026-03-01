@@ -800,6 +800,18 @@ video {
 .top-\[50\%\] {
   top: 50%;
 }
+.right-1\.5 {
+  right: 0.375rem;
+}
+.top-1 {
+  top: 0.25rem;
+}
+.-right-1 {
+  right: -0.25rem;
+}
+.-top-1 {
+  top: -0.25rem;
+}
 .z-40 {
   z-index: 40;
 }
@@ -912,6 +924,9 @@ video {
 .h-2 {
   height: 0.5rem;
 }
+.h-2\.5 {
+  height: 0.625rem;
+}
 .h-3 {
   height: 0.75rem;
 }
@@ -990,6 +1005,9 @@ video {
 .w-16 {
   width: 4rem;
 }
+.w-2\.5 {
+  width: 0.625rem;
+}
 .w-20 {
   width: 5rem;
 }
@@ -1040,6 +1058,9 @@ video {
 }
 .w-full {
   width: 100%;
+}
+.w-2 {
+  width: 0.5rem;
 }
 .min-w-0 {
   min-width: 0px;
@@ -1191,6 +1212,10 @@ video {
 .gap-8 {
   gap: 2rem;
 }
+.gap-x-1 {
+  -moz-column-gap: 0.25rem;
+       column-gap: 0.25rem;
+}
 .space-x-4 > :not([hidden]) ~ :not([hidden]) {
   --tw-space-x-reverse: 0;
   margin-right: calc(1rem * var(--tw-space-x-reverse));
@@ -1336,6 +1361,9 @@ video {
 .border-emerald-500\/30 {
   border-color: rgb(16 185 129 / 0.3);
 }
+.border-green-500\/30 {
+  border-color: rgb(34 197 94 / 0.3);
+}
 .border-quantum-accent\/30 {
   border-color: rgb(59 130 246 / 0.3);
 }
@@ -1379,6 +1407,10 @@ video {
 .border-t-white {
   --tw-border-opacity: 1;
   border-top-color: rgb(255 255 255 / var(--tw-border-opacity, 1));
+}
+.bg-\[\#0E1420\] {
+  --tw-bg-opacity: 1;
+  background-color: rgb(14 20 32 / var(--tw-bg-opacity, 1));
 }
 .bg-amber-400\/10 {
   background-color: rgb(251 191 36 / 0.1);
@@ -1437,8 +1469,14 @@ video {
 .bg-green-500\/10 {
   background-color: rgb(34 197 94 / 0.1);
 }
+.bg-green-500\/15 {
+  background-color: rgb(34 197 94 / 0.15);
+}
 .bg-green-500\/20 {
   background-color: rgb(34 197 94 / 0.2);
+}
+.bg-green-500\/5 {
+  background-color: rgb(34 197 94 / 0.05);
 }
 .bg-quantum-accent {
   --tw-bg-opacity: 1;
@@ -1446,6 +1484,9 @@ video {
 }
 .bg-quantum-accent\/10 {
   background-color: rgb(59 130 246 / 0.1);
+}
+.bg-quantum-accent\/15 {
+  background-color: rgb(59 130 246 / 0.15);
 }
 .bg-quantum-accent\/20 {
   background-color: rgb(59 130 246 / 0.2);
@@ -1467,6 +1508,9 @@ video {
 .bg-quantum-cyan\/10 {
   background-color: rgb(6 182 212 / 0.1);
 }
+.bg-quantum-cyan\/15 {
+  background-color: rgb(6 182 212 / 0.15);
+}
 .bg-quantum-cyan\/20 {
   background-color: rgb(6 182 212 / 0.2);
 }
@@ -1479,6 +1523,9 @@ video {
 }
 .bg-quantum-gold\/10 {
   background-color: rgb(245 158 11 / 0.1);
+}
+.bg-quantum-gold\/15 {
+  background-color: rgb(245 158 11 / 0.15);
 }
 .bg-quantum-gold\/5 {
   background-color: rgb(245 158 11 / 0.05);
@@ -1518,11 +1565,18 @@ video {
 .bg-white\/5 {
   background-color: rgb(255 255 255 / 0.05);
 }
+.bg-white\/\[0\.02\] {
+  background-color: rgb(255 255 255 / 0.02);
+}
 .bg-yellow-400\/10 {
   background-color: rgb(250 204 21 / 0.1);
 }
 .bg-yellow-500\/20 {
   background-color: rgb(234 179 8 / 0.2);
+}
+.bg-red-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(239 68 68 / var(--tw-bg-opacity, 1));
 }
 .bg-gradient-to-b {
   background-image: linear-gradient(to bottom, var(--tw-gradient-stops));
@@ -1563,6 +1617,9 @@ video {
 }
 .p-1 {
   padding: 0.25rem;
+}
+.p-3 {
+  padding: 0.75rem;
 }
 .p-4 {
   padding: 1rem;
@@ -1689,6 +1746,9 @@ video {
 .pt-2 {
   padding-top: 0.5rem;
 }
+.pt-3 {
+  padding-top: 0.75rem;
+}
 .pt-5 {
   padding-top: 1.25rem;
 }
@@ -1791,6 +1851,9 @@ video {
 .tracking-tight {
   letter-spacing: -0.025em;
 }
+.tracking-wider {
+  letter-spacing: 0.05em;
+}
 .tracking-widest {
   letter-spacing: 0.1em;
 }
@@ -1889,6 +1952,9 @@ video {
 .opacity-0 {
   opacity: 0;
 }
+.opacity-40 {
+  opacity: 0.4;
+}
 .opacity-50 {
   opacity: 0.5;
 }
@@ -1934,6 +2000,15 @@ video {
   --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color);
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+.ring-1 {
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+.ring-quantum-surface {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(14 20 32 / var(--tw-ring-opacity, 1));
 }
 .ring-offset-quantum-bg {
   --tw-ring-offset-color: #080B12;
@@ -2156,6 +2231,10 @@ video {
 
 .hover\:bg-white\/\[0\.04\]:hover {
   background-color: rgb(255 255 255 / 0.04);
+}
+
+.hover\:bg-white\/\[0\.08\]:hover {
+  background-color: rgb(255 255 255 / 0.08);
 }
 
 .hover\:text-quantum-accent:hover {

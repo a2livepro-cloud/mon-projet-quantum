@@ -21,25 +21,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import { AuthNav } from "@/components/auth-nav";
 import { validatePassword } from "@/lib/utils";
 import { PasswordRules } from "@/components/password-rules";
 import { CheckCircle, ArrowRight } from "lucide-react";
 import { Turnstile } from "@marsidev/react-turnstile";
+import { SECTEUR_LABELS } from "@/types/database";
+import type { SecteurCandidat } from "@/types/database";
 
-const SECTEURS = [
-  "Prestation / Cabinet de recrutement",
-  "Intérim",
-  "Industrie",
-  "Aéronautique",
-  "Autre",
+const ALL_SECTEURS: SecteurCandidat[] = [
+  "aeronautique",
+  "automobile",
+  "energie",
+  "robotique",
+  "industrie",
+  "bureau_etudes",
 ];
 const TAILLES = ["1-10", "11-50", "51-200", "200+"];
 
 export default function InscriptionClientPage() {
   const [nomEntreprise, setNomEntreprise] = useState("");
-  const [secteurActivite, setSecteurActivite] = useState("");
+  const [secteurs, setSecteurs] = useState<SecteurCandidat[]>([]);
   const [tailleEntreprise, setTailleEntreprise] = useState("");
   const [nomContact, setNomContact] = useState("");
   const [email, setEmail] = useState("");
@@ -48,6 +52,7 @@ export default function InscriptionClientPage() {
   const [referralCode, setReferralCode] = useState("");
   const [cguAccepted, setCguAccepted] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [showCaptcha, setShowCaptcha] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pwdFocused, setPwdFocused] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -109,7 +114,7 @@ export default function InscriptionClientPage() {
     const { error: clientError } = await supabase.from("clients").insert({
       id: authData.user.id,
       nom_entreprise: nomEntreprise,
-      secteur_activite: secteurActivite || null,
+      secteurs: secteurs,
       taille_entreprise: tailleEntreprise || null,
       referred_by: referralCode.trim() || null,
       description_besoin: descriptionBesoin.trim() || null,
@@ -175,13 +180,23 @@ export default function InscriptionClientPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Secteur d&apos;activité</Label>
-              <Select value={secteurActivite} onValueChange={setSecteurActivite}>
-                <SelectTrigger><SelectValue placeholder="Choisir" /></SelectTrigger>
-                <SelectContent>
-                  {SECTEURS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>
+                Secteurs d&apos;activité{" "}
+                <span className="font-normal text-slate-500">(un ou plusieurs)</span>
+              </Label>
+              <div className="grid grid-cols-2 gap-2 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+                {ALL_SECTEURS.map((s) => (
+                  <label key={s} className="flex cursor-pointer items-center gap-2">
+                    <Checkbox
+                      checked={secteurs.includes(s)}
+                      onCheckedChange={(checked) =>
+                        setSecteurs(checked ? [...secteurs, s] : secteurs.filter((x) => x !== s))
+                      }
+                    />
+                    <span className="text-sm text-slate-300">{SECTEUR_LABELS[s]}</span>
+                  </label>
+                ))}
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Taille de l&apos;entreprise</Label>
@@ -248,12 +263,36 @@ export default function InscriptionClientPage() {
               </label>
             </div>
             <div className="flex justify-center">
-              <Turnstile
-                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-                onSuccess={setCaptchaToken}
-                onExpire={() => setCaptchaToken(null)}
-                options={{ theme: "dark", language: "fr" }}
-              />
+              {captchaToken ? (
+                <div className="flex w-full items-center gap-3 rounded border border-green-500/30 bg-green-500/5 px-4 py-3 text-sm text-green-400">
+                  <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  <span className="flex-1 text-left">Vérification réussie</span>
+                  <div className="shrink-0 text-right">
+                    <div className="text-[10px] text-slate-500">Cloudflare</div>
+                    <div className="text-[10px] text-slate-600">Turnstile</div>
+                  </div>
+                </div>
+              ) : !showCaptcha ? (
+                <button
+                  type="button"
+                  onClick={() => setShowCaptcha(true)}
+                  className="flex w-full items-center gap-3 rounded border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300 hover:border-white/20 hover:bg-white/[0.08] transition-colors"
+                >
+                  <div className="h-5 w-5 rounded border border-white/20 bg-[#0E1420] shrink-0" />
+                  <span className="flex-1 text-left">Je ne suis pas un robot</span>
+                  <div className="shrink-0 text-right">
+                    <div className="text-[10px] text-slate-500">Cloudflare</div>
+                    <div className="text-[10px] text-slate-600">Turnstile</div>
+                  </div>
+                </button>
+              ) : (
+                <Turnstile
+                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                  onSuccess={setCaptchaToken}
+                  onExpire={() => { setCaptchaToken(null); setShowCaptcha(false); }}
+                  options={{ theme: "dark", language: "fr" }}
+                />
+              )}
             </div>
             <Button type="submit" className="w-full" disabled={loading || !captchaToken}>
               {loading ? "Inscription…" : "S'inscrire"}

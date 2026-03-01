@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   User,
@@ -12,6 +13,8 @@ import {
   Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const LS_KEY = "communaute_last_seen";
 
 const NAV = [
   { href: "/candidat/profil",     label: "Mon profil",   icon: User },
@@ -46,6 +49,36 @@ export function CandidatSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const [communauteUnread, setCommunauteUnread] = useState(false);
+
+  const isCommunautePage = pathname.startsWith("/candidat/communaute");
+
+  useEffect(() => {
+    if (isCommunautePage) {
+      localStorage.setItem(LS_KEY, new Date().toISOString());
+      setCommunauteUnread(false);
+      return;
+    }
+
+    async function check() {
+      const lastSeen = localStorage.getItem(LS_KEY);
+      let q = supabase.from("messages").select("*", { count: "exact", head: true });
+      if (lastSeen) q = q.gt("created_at", lastSeen);
+      const { count } = await q;
+      setCommunauteUnread((count ?? 0) > 0);
+    }
+    check();
+
+    const sub = supabase
+      .channel("notif-communaute-candidat")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => {
+        setCommunauteUnread(true);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(sub); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCommunautePage]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -96,6 +129,7 @@ export function CandidatSidebar({
         {NAV.map((item) => {
           const Icon = item.icon;
           const active = pathname.startsWith(item.href);
+          const isCommunaute = item.href.includes("communaute");
           return (
             <Link
               key={item.label}
@@ -107,12 +141,17 @@ export function CandidatSidebar({
                   : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
               )}
             >
-              <Icon
-                className={cn(
-                  "h-4 w-4 shrink-0 transition-colors",
-                  active ? "text-quantum-cyan" : "text-slate-500 group-hover:text-slate-300"
+              <span className="relative shrink-0">
+                <Icon
+                  className={cn(
+                    "h-4 w-4 transition-colors",
+                    active ? "text-quantum-cyan" : "text-slate-500 group-hover:text-slate-300"
+                  )}
+                />
+                {isCommunaute && communauteUnread && !active && (
+                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-quantum-surface" />
                 )}
-              />
+              </span>
               {item.label}
               {active && (
                 <span className="ml-auto h-1.5 w-1.5 rounded-full bg-quantum-cyan" />

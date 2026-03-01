@@ -31,6 +31,8 @@ export interface Profile {
 export interface Candidat {
   id: string;
   secteur: SecteurCandidat | null;
+  secteurs: SecteurCandidat[];
+  secteurs_valides: SecteurCandidat[];
   annees_experience: AnneesExperience | null;
   disponibilite: Disponibilite | null;
   competences: string[];
@@ -49,6 +51,8 @@ export interface Client {
   nom_entreprise: string | null;
   secteur_activite: string | null;
   taille_entreprise: string | null;
+  secteurs: SecteurCandidat[];
+  secteurs_valides: SecteurCandidat[];
   referral_code: string | null;
   referred_by: string | null;
   xp: number;

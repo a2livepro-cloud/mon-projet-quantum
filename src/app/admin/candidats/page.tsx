@@ -26,7 +26,7 @@ export default async function AdminCandidatsPage({
     ids.length > 0
       ? await supabase
           .from("candidats")
-          .select("id, secteur, annees_experience, disponibilite, cv_path")
+          .select("id, secteurs, secteurs_valides, annees_experience, disponibilite, cv_url, xp, grade")
           .in("id", ids)
       : { data: [] };
 

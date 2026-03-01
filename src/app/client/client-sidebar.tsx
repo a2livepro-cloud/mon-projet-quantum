@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   LayoutDashboard,
@@ -14,6 +15,8 @@ import {
   Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const LS_KEY = "communaute_last_seen";
 
 const NAV = [
   { href: "/client/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -42,6 +45,36 @@ export function ClientSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const [communauteUnread, setCommunauteUnread] = useState(false);
+
+  const isCommunautePage = pathname.startsWith("/client/communaute");
+
+  useEffect(() => {
+    if (isCommunautePage) {
+      localStorage.setItem(LS_KEY, new Date().toISOString());
+      setCommunauteUnread(false);
+      return;
+    }
+
+    async function check() {
+      const lastSeen = localStorage.getItem(LS_KEY);
+      let q = supabase.from("messages").select("*", { count: "exact", head: true });
+      if (lastSeen) q = q.gt("created_at", lastSeen);
+      const { count } = await q;
+      setCommunauteUnread((count ?? 0) > 0);
+    }
+    check();
+
+    const sub = supabase
+      .channel("notif-communaute-client")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => {
+        setCommunauteUnread(true);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(sub); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCommunautePage]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -68,7 +101,6 @@ export function ClientSidebar({
       {/* User info */}
       <div className="border-b border-white/[0.06] px-4 py-4">
         <div className="flex items-center gap-3">
-          {/* Avatar */}
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-quantum-accent/20 text-xs font-bold text-quantum-accent">
             {initials}
           </div>
@@ -96,6 +128,7 @@ export function ClientSidebar({
             item.href === "/client/dashboard"
               ? pathname === item.href
               : pathname.startsWith(item.href);
+          const isCommunaute = item.href.includes("communaute");
           return (
             <Link
               key={item.label}
@@ -107,12 +140,17 @@ export function ClientSidebar({
                   : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
               )}
             >
-              <Icon
-                className={cn(
-                  "h-4 w-4 shrink-0 transition-colors",
-                  active ? "text-quantum-accent" : "text-slate-500 group-hover:text-slate-300"
+              <span className="relative shrink-0">
+                <Icon
+                  className={cn(
+                    "h-4 w-4 transition-colors",
+                    active ? "text-quantum-accent" : "text-slate-500 group-hover:text-slate-300"
+                  )}
+                />
+                {isCommunaute && communauteUnread && !active && (
+                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-quantum-surface" />
                 )}
-              />
+              </span>
               {item.label}
               {active && (
                 <span className="ml-auto h-1.5 w-1.5 rounded-full bg-quantum-accent" />

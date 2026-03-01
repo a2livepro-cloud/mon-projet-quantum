@@ -1,4 +1,12 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/page": "app/page.js"
+  "/connexion/page": "app/connexion/page.js",
+  "/api/chat/authors/route": "app/api/chat/authors/route.js",
+  "/choisir/page": "app/choisir/page.js",
+  "/candidat/communaute/page": "app/candidat/communaute/page.js",
+  "/candidat/profil/page": "app/candidat/profil/page.js",
+  "/candidat/grades/page": "app/candidat/grades/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/candidats/page": "app/admin/candidats/page.js",
+  "/admin/clients/page": "app/admin/clients/page.js",
+  "/admin/communaute/page": "app/admin/communaute/page.js"
 }

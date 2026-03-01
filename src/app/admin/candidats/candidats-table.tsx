@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog,
@@ -16,6 +17,15 @@ import { SECTEUR_LABELS } from "@/types/database";
 import type { SecteurCandidat } from "@/types/database";
 import { CheckCircle, XCircle, MessageSquare, FileText } from "lucide-react";
 
+const ALL_SECTEURS: SecteurCandidat[] = [
+  "aeronautique",
+  "automobile",
+  "energie",
+  "robotique",
+  "industrie",
+  "bureau_etudes",
+];
+
 type Profile = {
   id: string;
   full_name: string | null;
@@ -26,16 +36,18 @@ type Profile = {
 };
 type CandidatRow = {
   id: string;
-  secteur: SecteurCandidat | null;
+  secteurs: SecteurCandidat[];
+  secteurs_valides: SecteurCandidat[];
   annees_experience: string | null;
   disponibilite: string | null;
-  cv_path: string | null;
+  cv_url: string | null;
 };
 
 type PendingAction = {
   profileId: string;
   newStatus: "approved" | "rejected";
   name: string;
+  secteursCandidature: SecteurCandidat[];
 };
 
 const STATUS_CONFIG = {
@@ -56,11 +68,15 @@ export function CandidatsTable({
 
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [note, setNote] = useState("");
+  const [secteursValides, setSecteursValides] = useState<SecteurCandidat[]>([]);
   const [loading, setLoading] = useState(false);
 
   function openDialog(profileId: string, newStatus: "approved" | "rejected", name: string) {
     setNote("");
-    setPending({ profileId, newStatus, name });
+    const c = candidatsMap.get(profileId);
+    const candidature = c?.secteurs ?? [];
+    setSecteursValides(candidature); // pré-cocher tous les secteurs demandés
+    setPending({ profileId, newStatus, name, secteursCandidature: candidature });
   }
 
   async function openCv(candidatId: string) {
@@ -92,6 +108,7 @@ export function CandidatsTable({
           profileId: pending.profileId,
           newStatus: pending.newStatus,
           adminNote: note.trim() || undefined,
+          secteursValides: pending.newStatus === "approved" ? secteursValides : undefined,
         }),
       });
       const json = await res.json();
@@ -105,7 +122,7 @@ export function CandidatsTable({
         toast({
           title: pending.newStatus === "approved" ? "Candidat validé" : "Candidat refusé",
           description: pending.newStatus === "approved"
-            ? `${pending.name} a accès à la plateforme.`
+            ? `${pending.name} a accès à la plateforme (${secteursValides.length} secteur(s) activé(s)).`
             : `${pending.name} a été refusé.`,
         });
         setPending(null);
@@ -130,7 +147,7 @@ export function CandidatsTable({
             <tr className="border-b border-white/10 text-left text-slate-400">
               <th className="pb-3 pr-4 font-medium">Nom</th>
               <th className="pb-3 pr-4 font-medium">Email</th>
-              <th className="pb-3 pr-4 font-medium">Secteur</th>
+              <th className="pb-3 pr-4 font-medium">Secteurs demandés</th>
               <th className="pb-3 pr-4 font-medium">Expérience</th>
               <th className="pb-3 pr-4 font-medium">Statut</th>
               <th className="pb-3 pr-4 font-medium">Note admin</th>
@@ -142,12 +159,35 @@ export function CandidatsTable({
             {profiles.map((p) => {
               const c = candidatsMap.get(p.id);
               const cfg = STATUS_CONFIG[p.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending;
+              const secteurs = c?.secteurs ?? [];
+              const valides = c?.secteurs_valides ?? [];
               return (
                 <tr key={p.id} className="border-b border-white/5 transition-colors hover:bg-white/[0.02]">
                   <td className="py-3 pr-4 font-medium text-white">{p.full_name ?? "—"}</td>
                   <td className="py-3 pr-4 text-slate-300">{p.email ?? "—"}</td>
-                  <td className="py-3 pr-4 text-slate-300">
-                    {c?.secteur ? (SECTEUR_LABELS as Record<string, string>)[c.secteur] : "—"}
+                  <td className="py-3 pr-4">
+                    {secteurs.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {secteurs.map((s) => {
+                          const isValide = valides.includes(s);
+                          return (
+                            <span
+                              key={s}
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                                isValide
+                                  ? "bg-green-500/15 text-green-400"
+                                  : "bg-white/5 text-slate-400"
+                              }`}
+                            >
+                              {SECTEUR_LABELS[s]}
+                              {isValide && " ✓"}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <span className="text-slate-600">—</span>
+                    )}
                   </td>
                   <td className="py-3 pr-4 text-slate-300">
                     {c?.annees_experience ? `${c.annees_experience} ans` : "—"}
@@ -166,7 +206,7 @@ export function CandidatsTable({
                     )}
                   </td>
                   <td className="py-3 pr-4">
-                    {c?.cv_path ? (
+                    {c?.cv_url ? (
                       <Button
                         size="sm"
                         variant="ghost"
@@ -224,7 +264,50 @@ export function CandidatsTable({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="mt-4 space-y-2">
+          {/* Secteurs à valider — uniquement à l'approbation */}
+          {pending?.newStatus === "approved" && (
+            <div className="mt-2 space-y-2">
+              <p className="text-sm font-medium text-slate-300">
+                Canaux autorisés{" "}
+                <span className="font-normal text-slate-500">
+                  (cochez les secteurs que vous validez)
+                </span>
+              </p>
+              <div className="grid grid-cols-2 gap-2 rounded-lg border border-white/10 bg-quantum-bg p-3">
+                {ALL_SECTEURS.map((s) => {
+                  const demande = pending.secteursCandidature.includes(s);
+                  return (
+                    <label
+                      key={s}
+                      className={`flex cursor-pointer items-center gap-2 ${!demande ? "opacity-40" : ""}`}
+                    >
+                      <Checkbox
+                        checked={secteursValides.includes(s)}
+                        onCheckedChange={(checked) =>
+                          setSecteursValides(
+                            checked
+                              ? [...secteursValides, s]
+                              : secteursValides.filter((x) => x !== s)
+                          )
+                        }
+                      />
+                      <span className="text-sm text-slate-300">
+                        {SECTEUR_LABELS[s]}
+                        {demande && (
+                          <span className="ml-1 text-[10px] text-quantum-accent">demandé</span>
+                        )}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-slate-500">
+                Les secteurs cochés définissent les canaux de chat accessibles au candidat.
+              </p>
+            </div>
+          )}
+
+          <div className="mt-2 space-y-2">
             <label className="text-sm font-medium text-slate-300">
               Note interne{" "}
               <span className="text-slate-500 font-normal">(optionnelle — visible uniquement par les admins)</span>

@@ -26,7 +26,7 @@ export default async function AdminClientsPage({
     ids.length > 0
       ? await supabase
           .from("clients")
-          .select("id, nom_entreprise, secteur_activite")
+          .select("id, nom_entreprise, secteurs, secteurs_valides")
           .in("id", ids)
       : { data: [] };
 

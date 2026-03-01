@@ -18,10 +18,11 @@ export async function POST(request: Request) {
 
   // 2. Lire le body
   const body = await request.json();
-  const { profileId, newStatus, adminNote } = body as {
+  const { profileId, newStatus, adminNote, secteursValides } = body as {
     profileId: string;
     newStatus: "approved" | "rejected";
     adminNote?: string;
+    secteursValides?: string[];
   };
   if (!profileId || !newStatus)
     return NextResponse.json({ error: "profileId et newStatus requis" }, { status: 400 });
@@ -50,7 +51,10 @@ export async function POST(request: Request) {
 
     if (p?.role === "candidat") {
       const { data: code } = await admin.rpc("generate_referral_code");
-      await admin.from("candidats").update({ referral_code: code }).eq("id", profileId);
+      await admin.from("candidats").update({
+        referral_code: code,
+        ...(secteursValides !== undefined ? { secteurs_valides: secteursValides } : {}),
+      }).eq("id", profileId);
 
       const { data: cand } = await admin
         .from("candidats")
@@ -104,7 +108,10 @@ export async function POST(request: Request) {
 
     if (p?.role === "client") {
       const { data: code } = await admin.rpc("generate_referral_code");
-      await admin.from("clients").update({ referral_code: code }).eq("id", profileId);
+      await admin.from("clients").update({
+        referral_code: code,
+        ...(secteursValides !== undefined ? { secteurs_valides: secteursValides } : {}),
+      }).eq("id", profileId);
     }
   }
 

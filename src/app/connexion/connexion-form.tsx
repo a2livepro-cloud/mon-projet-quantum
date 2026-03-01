@@ -48,6 +48,15 @@ export function ConnexionForm() {
       .select("role, status")
       .eq("id", data.user.id)
       .single();
+    if (!profile) {
+      toast({
+        title: "Profil introuvable",
+        description: "Votre inscription est incomplète. Veuillez vous réinscrire ou contacter l'administrateur.",
+        variant: "destructive",
+      });
+      await supabase.auth.signOut();
+      return;
+    }
     if (profile?.status === "pending") {
       toast({
         title: "Compte en attente",

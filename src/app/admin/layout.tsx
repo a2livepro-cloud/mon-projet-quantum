@@ -10,6 +10,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { AdminHeaderActions } from "./admin-header-actions";
+import { AdminCommunauteLink } from "@/components/chat/admin-communaute-link";
 
 export default async function AdminLayout({
   children,
@@ -63,6 +64,7 @@ export default async function AdminLayout({
                 <Briefcase className="h-4 w-4" /> Placements
               </Button>
             </Link>
+            <AdminCommunauteLink />
             <AdminHeaderActions />
           </nav>
         </div>
