@@ -11,6 +11,7 @@ export type SecteurCandidat =
 
 export type AnneesExperience = "0-2" | "3-5" | "6-10" | "10+";
 export type Disponibilite = "immediate" | "1_mois" | "3_mois" | "veille";
+export type Mobilite = "locale" | "regionale" | "nationale" | "internationale";
 
 export type Grade = "recrue" | "membre" | "confirme" | "pionnier" | "ambassadeur";
 
@@ -35,6 +36,8 @@ export interface Candidat {
   secteurs_valides: SecteurCandidat[];
   annees_experience: AnneesExperience | null;
   disponibilite: Disponibilite | null;
+  localisation: string | null;
+  mobilite: Mobilite | null;
   competences: string[];
   cv_url: string | null;
   referral_code: string | null;
@@ -140,6 +143,13 @@ export const DISPO_LABELS: Record<Disponibilite, string> = {
   "1_mois": "Sous 1 mois",
   "3_mois": "Sous 3 mois",
   veille: "Veille",
+};
+
+export const MOBILITE_LABELS: Record<Mobilite, string> = {
+  locale:          "Locale (même ville)",
+  regionale:       "Régionale",
+  nationale:       "Nationale",
+  internationale:  "Internationale",
 };
 
 export const XP_ACTIONS = {

@@ -13,9 +13,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { SECTEUR_LABELS } from "@/types/database";
-import type { SecteurCandidat } from "@/types/database";
-import { CheckCircle, XCircle, MessageSquare, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { SECTEUR_LABELS, GRADE_LABELS } from "@/types/database";
+import type { SecteurCandidat, Grade } from "@/types/database";
+import { CheckCircle, XCircle, MessageSquare, Pencil, Search, ChevronLeft, ChevronRight } from "lucide-react";
 
 const PAGE_SIZE = 20;
 
@@ -27,6 +27,16 @@ const ALL_SECTEURS: SecteurCandidat[] = [
   "industrie",
   "bureau_etudes",
 ];
+
+const ALL_GRADES: Grade[] = ["recrue", "membre", "confirme", "pionnier", "ambassadeur"];
+
+function calcGrade(xp: number): Grade {
+  if (xp >= 5000) return "ambassadeur";
+  if (xp >= 3000) return "pionnier";
+  if (xp >= 1500) return "confirme";
+  if (xp >= 500) return "membre";
+  return "recrue";
+}
 
 type Profile = {
   id: string;
@@ -41,6 +51,16 @@ type ClientRow = {
   nom_entreprise: string | null;
   secteurs: SecteurCandidat[];
   secteurs_valides: SecteurCandidat[];
+  xp: number;
+  grade: Grade;
+};
+
+type EditTarget = {
+  clientId: string;
+  name: string;
+  secteursValides: SecteurCandidat[];
+  xp: number;
+  grade: Grade;
 };
 
 type PendingAction = {
@@ -71,6 +91,10 @@ export function ClientsTable({
   const [secteursValides, setSecteursValides] = useState<SecteurCandidat[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Edit dialog
+  const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
+
   // Search + pagination
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
@@ -94,6 +118,46 @@ export function ClientsTable({
     const candidature = c?.secteurs ?? [];
     setSecteursValides(candidature);
     setPending({ profileId, newStatus, name, secteursCandidature: candidature });
+  }
+
+  function openEdit(profileId: string, name: string) {
+    const c = clientsMap.get(profileId);
+    setEditTarget({
+      clientId: profileId,
+      name,
+      secteursValides: (c?.secteurs_valides ?? []) as SecteurCandidat[],
+      xp: c?.xp ?? 0,
+      grade: (c?.grade as Grade) ?? "recrue",
+    });
+  }
+
+  async function saveEdit() {
+    if (!editTarget) return;
+    setEditLoading(true);
+    try {
+      const res = await fetch("/api/admin/edit-client", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: editTarget.clientId,
+          secteursValides: editTarget.secteursValides,
+          xp: editTarget.xp,
+          grade: editTarget.grade,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast({ title: "Erreur", description: json.error ?? "Une erreur est survenue.", variant: "destructive" });
+      } else {
+        toast({ title: "Client mis à jour", description: `${editTarget.name} a été modifié.` });
+        setEditTarget(null);
+        router.refresh();
+      }
+    } catch {
+      toast({ title: "Erreur réseau", description: "Impossible de joindre l'API.", variant: "destructive" });
+    } finally {
+      setEditLoading(false);
+    }
   }
 
   async function confirm() {
@@ -165,6 +229,7 @@ export function ClientsTable({
               <th className="pb-3 pr-4 font-medium">Email</th>
               <th className="pb-3 pr-4 font-medium">Entreprise</th>
               <th className="pb-3 pr-4 font-medium">Secteurs demandés</th>
+              <th className="pb-3 pr-4 font-medium">XP / Rang</th>
               <th className="pb-3 pr-4 font-medium">Statut</th>
               <th className="pb-3 pr-4 font-medium">Note admin</th>
               <th className="pb-3 font-medium">Actions</th>
@@ -173,7 +238,7 @@ export function ClientsTable({
           <tbody>
             {visible.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-slate-500">
+                <td colSpan={8} className="py-8 text-center text-slate-500">
                   Aucun résultat pour &laquo;&nbsp;{search}&nbsp;&raquo;
                 </td>
               </tr>
@@ -213,6 +278,18 @@ export function ClientsTable({
                     )}
                   </td>
                   <td className="py-3 pr-4">
+                    {c ? (
+                      <div className="space-y-0.5">
+                        <p className="text-slate-200 font-medium">{c.xp} XP</p>
+                        <p className="text-xs text-quantum-gold capitalize">
+                          {(GRADE_LABELS as Record<string, string>)[c.grade] ?? c.grade}
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="text-slate-600">—</span>
+                    )}
+                  </td>
+                  <td className="py-3 pr-4">
                     <span className={`font-medium ${cfg.className}`}>{cfg.label}</span>
                   </td>
                   <td className="py-3 pr-4 max-w-[180px]">
@@ -226,27 +303,40 @@ export function ClientsTable({
                     )}
                   </td>
                   <td className="py-3">
-                    {p.status === "pending" && (
-                      <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      {p.status === "pending" && (
+                        <>
+                          <Button
+                            size="sm"
+                            className="gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white"
+                            onClick={() => openDialog(p.id, "approved", p.full_name ?? "Ce client")}
+                          >
+                            <CheckCircle className="h-3.5 w-3.5" />
+                            Valider
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="gap-1.5"
+                            onClick={() => openDialog(p.id, "rejected", p.full_name ?? "Ce client")}
+                          >
+                            <XCircle className="h-3.5 w-3.5" />
+                            Refuser
+                          </Button>
+                        </>
+                      )}
+                      {p.status === "approved" && (
                         <Button
                           size="sm"
-                          className="gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white"
-                          onClick={() => openDialog(p.id, "approved", p.full_name ?? "Ce client")}
+                          variant="ghost"
+                          className="gap-1.5 border border-white/10 text-slate-300 hover:border-quantum-accent/40 hover:text-quantum-accent"
+                          onClick={() => openEdit(p.id, p.full_name ?? "Ce client")}
                         >
-                          <CheckCircle className="h-3.5 w-3.5" />
-                          Valider
+                          <Pencil className="h-3.5 w-3.5" />
+                          Éditer
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="gap-1.5"
-                          onClick={() => openDialog(p.id, "rejected", p.full_name ?? "Ce client")}
-                        >
-                          <XCircle className="h-3.5 w-3.5" />
-                          Refuser
-                        </Button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -283,6 +373,115 @@ export function ClientsTable({
           </div>
         </div>
       )}
+
+      {/* Edit dialog */}
+      <Dialog open={!!editTarget} onOpenChange={(open) => { if (!open) setEditTarget(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-quantum-accent">
+              Éditer — {editTarget?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Modifiez les canaux autorisés, l&apos;XP et le rang manuellement.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Canaux */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-slate-300">Canaux autorisés</p>
+            <div className="grid grid-cols-2 gap-2 rounded-lg border border-white/10 bg-quantum-bg p-3">
+              {ALL_SECTEURS.map((s) => (
+                <label key={s} className="flex cursor-pointer items-center gap-2">
+                  <Checkbox
+                    checked={editTarget?.secteursValides.includes(s) ?? false}
+                    onCheckedChange={(checked) => {
+                      if (!editTarget) return;
+                      setEditTarget({
+                        ...editTarget,
+                        secteursValides: checked
+                          ? [...editTarget.secteursValides, s]
+                          : editTarget.secteursValides.filter((x) => x !== s),
+                      });
+                    }}
+                  />
+                  <span className="text-sm text-slate-300">{SECTEUR_LABELS[s]}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* XP */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300">Points XP</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                value={editTarget?.xp ?? 0}
+                onChange={(e) => {
+                  if (!editTarget) return;
+                  const xp = Math.max(0, parseInt(e.target.value) || 0);
+                  setEditTarget({ ...editTarget, xp });
+                }}
+                className="w-full rounded-lg border border-white/10 bg-quantum-bg px-3 py-2 text-sm text-slate-200 focus:border-quantum-accent/50 focus:outline-none focus:ring-1 focus:ring-quantum-accent/50"
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                title="Recalculer le rang depuis l'XP"
+                className="shrink-0 border border-white/10 text-xs text-slate-400 hover:text-slate-200"
+                onClick={() => {
+                  if (!editTarget) return;
+                  setEditTarget({ ...editTarget, grade: calcGrade(editTarget.xp) });
+                }}
+              >
+                → Rang
+              </Button>
+            </div>
+            <p className="text-xs text-slate-600">
+              Seuils : 0 Recrue · 500 Membre · 1 500 Confirmé · 3 000 Pionnier · 5 000 Ambassadeur
+            </p>
+          </div>
+
+          {/* Grade */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300">Rang</label>
+            <div className="grid grid-cols-5 gap-1.5">
+              {ALL_GRADES.map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => editTarget && setEditTarget({ ...editTarget, grade: g })}
+                  className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors ${
+                    editTarget?.grade === g
+                      ? "border-quantum-gold bg-quantum-gold/15 text-quantum-gold"
+                      : "border-white/10 text-slate-500 hover:border-white/20 hover:text-slate-300"
+                  }`}
+                >
+                  {(GRADE_LABELS as Record<string, string>)[g]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setEditTarget(null)} disabled={editLoading} className="text-slate-400">
+              Annuler
+            </Button>
+            <Button
+              onClick={saveEdit}
+              disabled={editLoading}
+              className="gap-1.5 bg-quantum-accent hover:bg-quantum-accent/90 text-white"
+            >
+              {editLoading
+                ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                : <Pencil className="h-4 w-4" />}
+              {editLoading ? "Enregistrement…" : "Enregistrer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirmation dialog */}
       <Dialog open={!!pending} onOpenChange={(open) => { if (!open) setPending(null); }}>

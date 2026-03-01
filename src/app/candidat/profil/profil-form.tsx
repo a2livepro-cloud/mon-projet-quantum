@@ -15,8 +15,8 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { createClient } from "@/lib/supabase/client";
 import type { Candidat } from "@/types/database";
-import { SECTEUR_LABELS, DISPO_LABELS } from "@/types/database";
-import type { SecteurCandidat, AnneesExperience, Disponibilite } from "@/types/database";
+import { SECTEUR_LABELS, DISPO_LABELS, MOBILITE_LABELS } from "@/types/database";
+import type { SecteurCandidat, AnneesExperience, Disponibilite, Mobilite } from "@/types/database";
 
 const SECTEURS: SecteurCandidat[] = [
   "aeronautique",
@@ -28,6 +28,7 @@ const SECTEURS: SecteurCandidat[] = [
 ];
 const ANNEES: AnneesExperience[] = ["0-2", "3-5", "6-10", "10+"];
 const DISPOS: Disponibilite[] = ["immediate", "1_mois", "3_mois", "veille"];
+const MOBILITES: Mobilite[] = ["locale", "regionale", "nationale", "internationale"];
 
 export function ProfilForm({ candidat }: { candidat: Candidat | null }) {
   const [secteur, setSecteur] = useState<SecteurCandidat | "">(
@@ -38,6 +39,10 @@ export function ProfilForm({ candidat }: { candidat: Candidat | null }) {
   );
   const [disponibilite, setDisponibilite] = useState<Disponibilite | "">(
     (candidat?.disponibilite as Disponibilite) ?? ""
+  );
+  const [localisation, setLocalisation] = useState(candidat?.localisation ?? "");
+  const [mobilite, setMobilite] = useState<Mobilite | "">(
+    (candidat?.mobilite as Mobilite) ?? ""
   );
   const [competencesStr, setCompetencesStr] = useState(
     candidat?.competences?.join(", ") ?? ""
@@ -60,16 +65,14 @@ export function ProfilForm({ candidat }: { candidat: Candidat | null }) {
         secteur: secteur || null,
         annees_experience: anneesExperience || null,
         disponibilite: disponibilite || null,
+        localisation: localisation.trim() || null,
+        mobilite: mobilite || null,
         competences,
       })
       .eq("id", candidat!.id);
     setLoading(false);
     if (error) {
-      toast({
-        title: "Erreur",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
       return;
     }
     await fetch("/api/xp/profil-complet", { method: "POST" });
@@ -94,6 +97,7 @@ export function ProfilForm({ candidat }: { candidat: Candidat | null }) {
           </SelectContent>
         </Select>
       </div>
+
       <div className="space-y-2">
         <Label>Années d&apos;expérience</Label>
         <Select
@@ -112,6 +116,7 @@ export function ProfilForm({ candidat }: { candidat: Candidat | null }) {
           </SelectContent>
         </Select>
       </div>
+
       <div className="space-y-2">
         <Label>Disponibilité</Label>
         <Select
@@ -130,15 +135,44 @@ export function ProfilForm({ candidat }: { candidat: Candidat | null }) {
           </SelectContent>
         </Select>
       </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="localisation">Localisation</Label>
+          <Input
+            id="localisation"
+            placeholder="Toulouse, Paris…"
+            value={localisation}
+            onChange={(e) => setLocalisation(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Mobilité</Label>
+          <Select value={mobilite} onValueChange={(v) => setMobilite(v as Mobilite)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Choisir" />
+            </SelectTrigger>
+            <SelectContent>
+              {MOBILITES.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {MOBILITE_LABELS[m]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div className="space-y-2">
-        <Label htmlFor="competences">Compétences (séparées par des virgules)</Label>
+        <Label htmlFor="competences">Compétences / logiciels (séparés par des virgules)</Label>
         <Input
           id="competences"
-          placeholder="CATIA, FEA, CFD, ..."
+          placeholder="CATIA, FEA, CFD, SolidWorks…"
           value={competencesStr}
           onChange={(e) => setCompetencesStr(e.target.value)}
         />
       </div>
+
       <Button type="submit" disabled={loading}>
         {loading ? "Enregistrement…" : "Enregistrer"}
       </Button>
