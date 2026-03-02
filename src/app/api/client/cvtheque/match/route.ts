@@ -2,38 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import type { Grade } from "@/types/database";
-
-// ─── Quotas par grade ─────────────────────────────────────────────────────────
-// -1 = illimité
-export const CVTHEQUE_QUOTA: Record<Grade, number> = {
-  recrue:      0,   // pas d'accès
-  membre:      5,
-  confirme:    15,
-  pionnier:    30,
-  ambassadeur: -1,
-};
-
-export const CVTHEQUE_MIN_GRADE: Grade = "membre"; // grade minimum requis
-
-export type CvthequeMatchResult = {
-  candidat_externe_id: string;
-  quantum_id: string;
-  score: number;
-  matched_competences: string[];
-  competences: string[];
-  secteur: string | null;
-  annees_experience: string | null;
-  localisation: string | null;
-  disponibilite: string | null;
-};
-
-export type CvthequeMatchError = {
-  error: string;
-  grade_required?: Grade;
-  grade_current?: Grade;
-  quota_used?: number;
-  quota_max?: number;
-};
+import {
+  CVTHEQUE_QUOTA,
+  CVTHEQUE_MIN_GRADE,
+  type CvthequeMatchResult,
+  type CvthequeMatchError,
+} from "@/lib/cvtheque";
 
 // ─── Score ────────────────────────────────────────────────────────────────────
 

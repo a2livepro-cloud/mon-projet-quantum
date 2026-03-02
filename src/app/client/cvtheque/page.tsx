@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CvthequeClient } from "./cvtheque-client";
-import { CVTHEQUE_QUOTA, CVTHEQUE_MIN_GRADE } from "@/app/api/client/cvtheque/match/route";
+import { CVTHEQUE_QUOTA, CVTHEQUE_MIN_GRADE } from "@/lib/cvtheque";
 import type { Grade } from "@/types/database";
 
 export default async function CvthequePage() {

@@ -27,7 +27,7 @@ import {
   Settings2,
   Lock,
 } from "lucide-react";
-import type { CvthequeMatchResult } from "@/app/api/client/cvtheque/match/route";
+import type { CvthequeMatchResult } from "@/lib/cvtheque";
 import type { Grade } from "@/types/database";
 import { GRADE_LABELS } from "@/types/database";
 
