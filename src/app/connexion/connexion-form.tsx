@@ -57,6 +57,23 @@ export function ConnexionForm() {
       await supabase.auth.signOut();
       return;
     }
+    // Vérifier que le rôle correspond au portail choisi
+    const expectedRole = searchParams.get("role");
+    if (expectedRole && profile.role !== expectedRole) {
+      const roleLabels: Record<string, string> = {
+        candidat: "candidat",
+        client: "client / entreprise",
+        admin: "administrateur",
+      };
+      toast({
+        title: "Mauvais portail",
+        description: `Ce compte est un compte ${roleLabels[profile.role] ?? profile.role}. Veuillez utiliser le bon portail de connexion.`,
+        variant: "destructive",
+      });
+      await supabase.auth.signOut();
+      return;
+    }
+
     if (profile?.status === "pending") {
       toast({
         title: "Compte en attente",
