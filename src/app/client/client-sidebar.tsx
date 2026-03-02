@@ -15,6 +15,7 @@ import {
   Home,
   X,
   Search,
+  DatabaseZap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,7 @@ const NAV = [
   { href: "/client/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/client/fiches", label: "Mes fiches", icon: FileText },
   { href: "/client/recherche", label: "Recherche", icon: Search },
+  { href: "/client/cvtheque", label: "CVthèque", icon: DatabaseZap },
   { href: "/client/communaute", label: "Communauté", icon: MessageCircle },
   { href: "/client/grades", label: "Grades", icon: Trophy },
   { href: "/client/parrainage", label: "Parrainage", icon: Users },

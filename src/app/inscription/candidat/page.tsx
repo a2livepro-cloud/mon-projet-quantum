@@ -25,7 +25,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { AuthNav } from "@/components/auth-nav";
 import { validatePassword } from "@/lib/utils";
 import { PasswordRules } from "@/components/password-rules";
-import { CheckCircle, ArrowRight, Paperclip, X } from "lucide-react";
+import { CheckCircle, ArrowRight, Paperclip, X, ShieldCheck, Lock } from "lucide-react";
 import type { SecteurCandidat, AnneesExperience, Disponibilite } from "@/types/database";
 import { SECTEUR_LABELS, DISPO_LABELS } from "@/types/database";
 import { Turnstile } from "@marsidev/react-turnstile";
@@ -41,6 +41,8 @@ const SECTEURS: SecteurCandidat[] = [
 const ANNEES: AnneesExperience[] = ["0-2", "3-5", "6-10", "10+"];
 const DISPOS: Disponibilite[] = ["immediate", "1_mois", "3_mois", "veille"];
 
+const CODE_REGEX = /^QTM-[A-Z0-9]{6}$/i;
+
 export default function InscriptionCandidatPage() {
   const [prenom, setPrenom] = useState("");
   const [nom, setNom] = useState("");
@@ -50,6 +52,7 @@ export default function InscriptionCandidatPage() {
   const [anneesExperience, setAnneesExperience] = useState<AnneesExperience | "">("");
   const [disponibilite, setDisponibilite] = useState<Disponibilite | "">("");
   const [referralCode, setReferralCode] = useState("");
+  const [motivation, setMotivation] = useState("");
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [gdprConsent, setGdprConsent] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -59,6 +62,11 @@ export default function InscriptionCandidatPage() {
   const [success, setSuccess] = useState(false);
   const { toast } = useToast();
   const supabase = createClient();
+
+  const hasCode = CODE_REGEX.test(referralCode.trim());
+  const isSpontanee = referralCode.trim().length > 0 && !hasCode
+    ? false // still typing, not yet spontaneous
+    : referralCode.trim().length === 0; // empty = spontaneous
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -72,6 +80,16 @@ export default function InscriptionCandidatPage() {
     }
     if (!captchaToken) {
       toast({ title: "CAPTCHA requis", description: "Veuillez compléter la vérification anti-bot.", variant: "destructive" });
+      return;
+    }
+    // Validation code parrainage si renseigné
+    if (referralCode.trim() && !hasCode) {
+      toast({ title: "Code invalide", description: "Le format attendu est QTM-XXXXXX.", variant: "destructive" });
+      return;
+    }
+    // Motivation obligatoire pour candidature spontanée
+    if (isSpontanee && motivation.trim().length < 100) {
+      toast({ title: "Motivation trop courte", description: "Décrivez votre profil en au moins 100 caractères.", variant: "destructive" });
       return;
     }
     const pwdError = validatePassword(password);
@@ -133,7 +151,8 @@ export default function InscriptionCandidatPage() {
       secteurs: secteurs,
       annees_experience: anneesExperience || null,
       disponibilite: disponibilite || null,
-      referred_by: referralCode.trim() || null,
+      referred_by: hasCode ? referralCode.trim().toUpperCase() : null,
+      motivation: isSpontanee ? motivation.trim() : null,
     });
     if (candidatError) {
       toast({
@@ -145,7 +164,7 @@ export default function InscriptionCandidatPage() {
       return;
     }
 
-    // Upload CV si fourni (avant signOut — la session est encore active)
+    // Upload CV si fourni
     if (cvFile) {
       const ext = cvFile.name.split(".").pop() ?? "pdf";
       const cvPath = `${authData.user.id}/cv.${ext}`;
@@ -153,7 +172,6 @@ export default function InscriptionCandidatPage() {
         .from("cvs")
         .upload(cvPath, cvFile, { upsert: true });
       if (storageError) {
-        // Non bloquant : on prévient sans stopper l'inscription
         toast({ title: "CV non uploadé", description: "Votre inscription est enregistrée mais le CV n'a pas pu être joint. Contactez-nous.", variant: "destructive" });
       } else {
         await supabase.from("candidats").update({ cv_url: cvPath }).eq("id", authData.user.id);
@@ -171,19 +189,31 @@ export default function InscriptionCandidatPage() {
         <AuthNav />
         <Card className="w-full max-w-md mt-14 text-center">
           <CardContent className="py-10">
-            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10">
-              <CheckCircle className="h-8 w-8 text-green-400" />
+            <div className={`mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full ${hasCode ? "bg-quantum-gold/10" : "bg-green-500/10"}`}>
+              <CheckCircle className={`h-8 w-8 ${hasCode ? "text-quantum-gold" : "text-green-400"}`} />
             </div>
-            <h2 className="font-syne text-2xl font-bold text-white">Inscription enregistrée !</h2>
-            <p className="mt-3 text-slate-400">
-              Votre compte est en attente de validation.<br />
-              Vous recevrez un email dès qu&apos;un administrateur aura validé votre accès.
-            </p>
+            {hasCode ? (
+              <>
+                <h2 className="font-syne text-2xl font-bold text-quantum-gold">Accès prioritaire !</h2>
+                <p className="mt-3 text-slate-400">
+                  Votre code parrainage a bien été enregistré.<br />
+                  Votre profil sera examiné en priorité par l&apos;équipe QUANTUM.
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 className="font-syne text-2xl font-bold text-white">Candidature reçue</h2>
+                <p className="mt-3 text-slate-400">
+                  Votre candidature spontanée est en cours d&apos;examen.<br />
+                  Si votre profil correspond à nos critères, vous serez contacté.
+                </p>
+              </>
+            )}
             <p className="mt-2 text-sm text-slate-500">
               Confirmation envoyée à <span className="text-slate-300">{email}</span>.
             </p>
             <Link href="/choisir?mode=connexion" className="mt-8 block">
-              <Button className="w-full gap-2">
+              <Button className={`w-full gap-2 ${hasCode ? "bg-quantum-gold text-black hover:bg-quantum-gold/90" : ""}`}>
                 Aller à la connexion
                 <ArrowRight className="h-4 w-4" />
               </Button>
@@ -206,6 +236,76 @@ export default function InscriptionCandidatPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+
+            {/* ── Code parrainage en premier ── */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="referral">Code parrainage</Label>
+                {hasCode && (
+                  <span className="flex items-center gap-1 rounded-full bg-quantum-gold/10 px-2 py-0.5 text-[10px] font-semibold text-quantum-gold">
+                    <ShieldCheck className="h-3 w-3" />
+                    Accès VIP
+                  </span>
+                )}
+              </div>
+              <Input
+                id="referral"
+                placeholder="QTM-XXXXXX"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value)}
+                className={
+                  hasCode
+                    ? "border-quantum-gold/50 bg-quantum-gold/5 text-quantum-gold placeholder:text-quantum-gold/30 focus-visible:ring-quantum-gold/30"
+                    : ""
+                }
+              />
+              {referralCode.trim().length > 0 && !hasCode && (
+                <p className="text-xs text-amber-400">Format attendu : QTM-XXXXXX</p>
+              )}
+              {!referralCode.trim() && (
+                <p className="text-xs text-slate-500">
+                  Un code reçu de l&apos;équipe ou d&apos;un parrain vous donne accès prioritaire.
+                </p>
+              )}
+            </div>
+
+            {/* ── Avertissement candidature spontanée ── */}
+            {isSpontanee && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <Lock className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-300">Candidature sans invitation</p>
+                    <p className="mt-0.5 text-xs text-amber-400/80">
+                      Sans code parrainage, les candidatures sont examinées au cas par cas.
+                      Décrivez ce qui vous rend unique pour augmenter vos chances.
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="motivation" className="text-amber-300 text-xs">
+                    Pourquoi rejoindre QUANTUM ? <span className="text-amber-500">*</span>
+                  </Label>
+                  <textarea
+                    id="motivation"
+                    value={motivation}
+                    onChange={(e) => setMotivation(e.target.value)}
+                    rows={4}
+                    placeholder="Présentez votre profil, vos compétences clés et ce qui vous distingue dans le domaine mécanique/industriel…"
+                    className="w-full resize-none rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:border-amber-500/40 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
+                  />
+                  <div className="flex justify-between text-xs">
+                    <span className={motivation.trim().length < 100 ? "text-amber-500" : "text-green-400"}>
+                      {motivation.trim().length < 100
+                        ? `Encore ${100 - motivation.trim().length} caractères minimum`
+                        : "✓ Longueur suffisante"}
+                    </span>
+                    <span className="text-slate-500">{motivation.trim().length} car.</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="prenom">Prénom</Label>
@@ -301,15 +401,6 @@ export default function InscriptionCandidatPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="referral">Code parrainage (optionnel)</Label>
-              <Input
-                id="referral"
-                placeholder="QTM-XXXXXX"
-                value={referralCode}
-                onChange={(e) => setReferralCode(e.target.value)}
-              />
-            </div>
 
             {/* CV Upload */}
             <div className="space-y-2">
@@ -402,8 +493,16 @@ export default function InscriptionCandidatPage() {
                 />
               )}
             </div>
-            <Button type="submit" className="w-full" disabled={loading || !captchaToken}>
-              {loading ? "Inscription…" : "S'inscrire"}
+            <Button
+              type="submit"
+              className={`w-full ${hasCode ? "bg-quantum-gold text-black font-semibold hover:bg-quantum-gold/90" : ""}`}
+              disabled={loading || !captchaToken}
+            >
+              {loading
+                ? "Inscription…"
+                : hasCode
+                ? "S'inscrire avec accès prioritaire"
+                : "S'inscrire"}
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-slate-400">

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { SECTEUR_LABELS, GRADE_LABELS } from "@/types/database";
 import type { SecteurCandidat, Grade } from "@/types/database";
-import { CheckCircle, XCircle, MessageSquare, FileText, Pencil, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle, XCircle, MessageSquare, FileText, Pencil, Search, ChevronLeft, ChevronRight, ShieldCheck, UserSearch } from "lucide-react";
 
 const PAGE_SIZE = 20;
 
@@ -55,6 +55,8 @@ type CandidatRow = {
   cv_url: string | null;
   xp: number;
   grade: string;
+  referred_by: string | null;
+  motivation: string | null;
 };
 
 type PendingAction = {
@@ -242,6 +244,7 @@ export function CandidatsTable({
             <tr className="border-b border-white/10 text-left text-slate-400">
               <th className="pb-3 pr-4 font-medium">Nom</th>
               <th className="pb-3 pr-4 font-medium">Email</th>
+              <th className="pb-3 pr-4 font-medium">Source</th>
               <th className="pb-3 pr-4 font-medium">Secteurs demandés</th>
               <th className="pb-3 pr-4 font-medium">Expérience</th>
               <th className="pb-3 pr-4 font-medium">XP / Rang</th>
@@ -254,7 +257,7 @@ export function CandidatsTable({
           <tbody>
             {visible.length === 0 && (
               <tr>
-                <td colSpan={9} className="py-8 text-center text-slate-500">
+                <td colSpan={10} className="py-8 text-center text-slate-500">
                   Aucun résultat pour &laquo;&nbsp;{search}&nbsp;&raquo;
                 </td>
               </tr>
@@ -268,6 +271,32 @@ export function CandidatsTable({
                 <tr key={p.id} className="border-b border-white/5 transition-colors hover:bg-white/[0.02]">
                   <td className="py-3 pr-4 font-medium text-white">{p.full_name ?? "—"}</td>
                   <td className="py-3 pr-4 text-slate-300">{p.email ?? "—"}</td>
+                  <td className="py-3 pr-4">
+                    {c?.referred_by ? (
+                      <div className="space-y-1">
+                        <span className="flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400 w-fit">
+                          <ShieldCheck className="h-3 w-3" />
+                          Parrainé
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-mono">{c.referred_by}</span>
+                      </div>
+                    ) : c?.motivation ? (
+                      <div className="space-y-1 max-w-[160px]">
+                        <span className="flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-400 w-fit">
+                          <UserSearch className="h-3 w-3" />
+                          Spontané
+                        </span>
+                        <p className="text-[10px] text-slate-500 italic line-clamp-2" title={c.motivation}>
+                          {c.motivation}
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-400 w-fit">
+                        <UserSearch className="h-3 w-3" />
+                        Spontané
+                      </span>
+                    )}
+                  </td>
                   <td className="py-3 pr-4">
                     {secteurs.length > 0 ? (
                       <div className="flex flex-wrap gap-1">

@@ -6,6 +6,7 @@ import {
   GRADE_LABELS,
   GRADE_THRESHOLDS,
   type Grade,
+  type SecteurCandidat,
 } from "@/types/database";
 import { ProfilForm } from "./profil-form";
 import { CvSection } from "./cv-section";
@@ -79,7 +80,7 @@ export default async function CandidatProfilPage() {
     : 100;
 
   const gradeColors = GRADE_COLORS[currentGrade];
-  const secteurValides = candidat?.secteurs_valides ?? [];
+  const secteurValides = (candidat?.secteurs_valides ?? []) as SecteurCandidat[];
 
   const completion =
     [
